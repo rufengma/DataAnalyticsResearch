@@ -1,2 +1,3 @@
 # DataAnalyticsResearch
-Code not necessarily merge to the group repo
+Unfinished code which not necessarily merge to the group repo but need to be in my weekly_update
+
