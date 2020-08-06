@@ -1,0 +1,153 @@
+---
+title: "Update 1"
+author: "Rufeng Ma"
+date: "7/26/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+r = getOption("repos")
+r["CRAN"] = "http://cran.rstudio.com"
+options(repos = r)
+
+if (!require("ggplot2")) {
+  install.packages("ggplot2")
+  library(ggplot2)
+}
+
+if (!require("future.apply")) {
+  install.packages("future.apply")
+  library(future.apply)
+}
+
+knitr::opts_chunk$set(echo = TRUE)
+source("Elasticsearch.R")
+
+```
+
+## Compare "K-mean elbow" and "silihouette score"
+
+For chosing the optimal k clusters, we need a score called silihouette score to have the best cluster numbers. This method can automatically have the best cluster number k, then plot the best cluster plotting.
+
+```{r}
+elasticsearch_host <- "lp01.idea.rpi.edu"
+library(cluster) 
+library(corrplot)
+library(knitr)
+library(future.apply)
+rangestart <- "2020-01-01 00:00:00"
+rangeend <- "2020-08-01 00:00:00"
+
+text_filter <- ""
+# query semantic similarity phrase
+semantic_phrase <- ""
+
+# return results in chronological order or as a random sample within the range
+# (ignored if semantic_phrase is not blank)
+random_sample <- FALSE
+# number of results to return (max 10,000)
+resultsize <- 10000
+```
+
+
+```{r, echo=FALSE}
+elasticsearch_indexname <- "covidevents-data"
+
+results <- do_search(indexname=elasticsearch_indexname, 
+                     rangestart=rangestart,
+                     rangeend=rangeend,
+                     text_filter=text_filter,
+                     semantic_phrase=semantic_phrase,
+                     must_have_embedding=TRUE,
+                     random_sample=random_sample,
+                     resultsize=resultsize,
+                     resultfields='"user.screen_name", "user.verified", "user.location", "place.full_name", "place.country", "text", "full_text", "extended_tweet.full_text", "embedding.use_large.primary", "dataset_file", "dataset_entry.annotation.part1.Response", "dataset_entry.annotation.part2-opinion.Response"',
+                     elasticsearch_host=elasticsearch_host,
+                     elasticsearch_path="elasticsearch",
+                     elasticsearch_port=443,
+                     elasticsearch_schema="https")
+
+tweet.vectors.df <- results$df[,c("full_text", "user_screen_name", "user_verified", "user_location", "place.country", "place.full_name", "dataset_file", "dataset_entry.annotation.part1.Response", "dataset_entry.annotation.part2-opinion.Response")]
+
+tweet.vectors.matrix <- t(simplify2array(results$df[,"embedding.use_large.primary"]))
+
+```
+## Including Plots
+
+You can also embed plots, for example:
+
+
+
+
+
+```{r, echo=FALSE}
+#Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+wssplot <- function(data, fc=2, nc=40, seed=20){
+  wss <- data.frame(k=fc:nc, withinss=c(0))
+  for (i in fc:nc){
+    set.seed(seed)
+    wss[i-fc+1,2] <- sum(kmeans(data, centers=i, iter.max=30)$withinss)}
+  ggplot(data=wss,aes(x=k,y=withinss)) + 
+    geom_line() + 
+    ggtitle("Quality (within sums of squares) of k-means by choice of k")
+}
+# Generate the plot
+wssplot(tweet.vectors.matrix)
+```
+
+```{r, echo=FALSE}
+sscore_plot <- function(data, fc=2, nc=5, seed=20){
+  desired_length <- (nc-fc)
+  sscore <- vector(mode = "list", length = desired_length)
+  knitr::kable(sscore,format = 'html')
+  plan(multiprocess)
+  X<- fc:nc
+  y<-future_lapply(X,function(x){
+    set.seed(seed)
+    km <- kmeans(data, centers=x, iter.max=30)
+    SIL<- silhouette(km$cluster, dist(data))
+    new_mean<- mean(SIL[, 3])
+    print(new_mean)
+    sscore[x] <- new_mean
+  })
+  plot(x=fc:nc,y=unlist(sscore), xlab="k",ylab="silhouette_score")
+}
+# Generate the plot
+sscore_plot(tweet.vectors.matrix)
+```
+
+```{r, echo=FALSE}
+
+qnm <- function(fc=2, nc=10, seed=20){
+  X<- 1:10
+  y<-future_lapply(X,function(x){
+    return(x)
+  })
+}
+
+sscore<-c(0)
+sscore<-c(sscore,qnm())
+print(length(sscore))
+plot(x=1:11,y=sscore)
+```
+
+
+```{r, echo=FALSE}
+sscore_fn<- function(data, fc=2, nc=10, seed=20){
+  plan(multiprocess)
+  X<- fc:nc
+  y<-future_lapply(X,function(x){
+    set.seed(seed)
+    km <- kmeans(data, centers=x, iter.max=30)
+    SIL<- silhouette(km$cluster, dist(data))
+    new_mean<- mean(SIL[, 3])
+    return(new_mean)
+  })
+}
+# Generate the plot
+
+sscore<-c(0)
+sscore<-c(sscore,sscore_fn(tweet.vectors.matrix))
+plot(x=2:(10+1),y=sscore)
+```
