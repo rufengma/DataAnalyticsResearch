@@ -51,6 +51,12 @@ resultsize <- 10000
 
 
 ```{r, echo=FALSE}
+sscore<-c(0)
+sscore<-c(sscore,sscore_fn(tweet.vectors.matrix,1))
+print(length(sscore))
+```
+
+```{r, echo=FALSE}
 elasticsearch_indexname <- "covidevents-data"
 
 results <- do_search(indexname=elasticsearch_indexname, 
@@ -97,44 +103,10 @@ wssplot(tweet.vectors.matrix)
 ```
 
 ```{r, echo=FALSE}
-sscore_plot <- function(data, fc=2, nc=5, seed=20){
-  desired_length <- (nc-fc)
-  sscore <- vector(mode = "list", length = desired_length)
-  knitr::kable(sscore,format = 'html')
-  plan(multiprocess)
-  X<- fc:nc
-  y<-future_lapply(X,function(x){
-    set.seed(seed)
-    km <- kmeans(data, centers=x, iter.max=30)
-    SIL<- silhouette(km$cluster, dist(data))
-    new_mean<- mean(SIL[, 3])
-    print(new_mean)
-    sscore[x] <- new_mean
-  })
-  plot(x=fc:nc,y=unlist(sscore), xlab="k",ylab="silhouette_score")
-}
-# Generate the plot
-sscore_plot(tweet.vectors.matrix)
-```
-
-```{r, echo=FALSE}
-
-qnm <- function(fc=2, nc=10, seed=20){
-  X<- 1:10
-  y<-future_lapply(X,function(x){
-    return(x)
-  })
-}
-
-sscore<-c(0)
-sscore<-c(sscore,qnm())
-print(length(sscore))
-plot(x=1:11,y=sscore)
-```
-
-
-```{r, echo=FALSE}
-sscore_fn<- function(data, fc=2, nc=10, seed=20){
+#Function sscore
+sscore_fn<- function(data,seed){
+  fc<-2
+  nc<-40
   plan(multiprocess)
   X<- fc:nc
   y<-future_lapply(X,function(x){
@@ -145,9 +117,11 @@ sscore_fn<- function(data, fc=2, nc=10, seed=20){
     return(new_mean)
   })
 }
-# Generate the plot
+```
 
+
+```{r, echo=FALSE}
 sscore<-c(0)
-sscore<-c(sscore,sscore_fn(tweet.vectors.matrix))
-plot(x=2:(10+1),y=sscore)
+sscore<-c(sscore,sscore_fn(tweet.vectors.matrix,1))
+print(length(sscore))
 ```
