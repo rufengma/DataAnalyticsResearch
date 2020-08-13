@@ -106,7 +106,7 @@ wssplot(tweet.vectors.matrix)
 #Function sscore
 sscore_fn<- function(data,seed){
   fc<-2
-  nc<-40
+  nc<-25
   plan(multiprocess)
   X<- fc:nc
   y<-future_lapply(X,function(x){
