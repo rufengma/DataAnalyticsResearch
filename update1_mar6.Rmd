@@ -5,6 +5,8 @@ date: "7/26/2020"
 output: html_document
 ---
 
+
+#Librarys
 ```{r setup, include=FALSE}
 r = getOption("repos")
 r["CRAN"] = "http://cran.rstudio.com"
@@ -30,12 +32,12 @@ source("Elasticsearch.R")
 For chosing the optimal k clusters, we need a score called silihouette score to have the best cluster numbers. This method can automatically have the best cluster number k, then plot the best cluster plotting.
 
 ```{r}
-elasticsearch_host <- "lp01.idea.rpi.edu"
+elasticsearch_host <- "lp01.idea.rpi.edu"  #insert the host
 library(cluster) 
 library(corrplot)
 library(knitr)
 library(future.apply)
-rangestart <- "2020-01-01 00:00:00"
+rangestart <- "2020-01-01 00:00:00" # can change the time slots
 rangeend <- "2020-08-01 00:00:00"
 
 text_filter <- ""
@@ -49,12 +51,6 @@ random_sample <- FALSE
 resultsize <- 10000
 ```
 
-
-```{r, echo=FALSE}
-sscore<-c(0)
-sscore<-c(sscore,sscore_fn(tweet.vectors.matrix,1))
-print(length(sscore))
-```
 
 ```{r, echo=FALSE}
 elasticsearch_indexname <- "covidevents-data"
@@ -80,47 +76,40 @@ tweet.vectors.matrix <- t(simplify2array(results$df[,"embedding.use_large.primar
 ```
 ## Including Plots
 
-You can also embed plots, for example:
-
-
-
-
-
 ```{r, echo=FALSE}
 #Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 wssplot <- function(data, fc=2, nc=40, seed=20){
-  wss <- data.frame(k=fc:nc, withinss=c(0))
+  wss <- data.frame(k=fc:nc, withinss=c(0)) #build a data frame to save withiness
   for (i in fc:nc){
-    set.seed(seed)
+    set.seed(seed) #set random seed to keep duplicable
     wss[i-fc+1,2] <- sum(kmeans(data, centers=i, iter.max=30)$withinss)}
-  ggplot(data=wss,aes(x=k,y=withinss)) + 
+  ggplot(data=wss,aes(x=k,y=withinss)) + #plotting process
     geom_line() + 
     ggtitle("Quality (within sums of squares) of k-means by choice of k")
 }
 # Generate the plot
-wssplot(tweet.vectors.matrix)
+wssplot(tweet.vectors.matrix) #call the function
 ```
 
 ```{r, echo=FALSE}
 #Function sscore
-sscore_fn<- function(data,seed){
+sscore_fn<- function(data,seed){ #input data: matrix or df, seed better to be the same as wss function
   fc<-2
-  nc<-25
-  plan(multiprocess)
+  nc<-25   #Choose K from 2 to 25.
+  plan(multiprocess) #A parralle process, when X from fc to nc, then the Y will call function(x) from fc to nc. But distributed each function
+  #To one node on the CPU server 
   X<- fc:nc
-  y<-future_lapply(X,function(x){
+  y<-future_lapply(X,function(x){ #Future lapply is a parallel process. 
     set.seed(seed)
-    km <- kmeans(data, centers=x, iter.max=30)
-    SIL<- silhouette(km$cluster, dist(data))
-    new_mean<- mean(SIL[, 3])
+    km <- kmeans(data, centers=x, iter.max=30) #For calculating the Kmean, each K run 30 iterations to keep converge.
+    SIL<- silhouette(km$cluster, dist(data))  #Silhouette score calculating ,this needs the each cluster after calculated kman, and the distance between points
+    new_mean<- mean(SIL[, 3]) #the 3rd column is the the silhouette coefficient for each data point, we calculate the mean for each cluster in each epoch.
     return(new_mean)
   })
 }
 ```
-
-
-```{r, echo=FALSE}
+```{r, echo=FALSE} # This is the process cal the function to append them to a list sscore.
 sscore<-c(0)
 sscore<-c(sscore,sscore_fn(tweet.vectors.matrix,1))
 print(length(sscore))
