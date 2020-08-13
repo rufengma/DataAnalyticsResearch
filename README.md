@@ -7,7 +7,7 @@ NLP_Clustering.ipynb<p>
 Silhoutte score plot.png<p>
 Silhoutte_coefficient_definition.jpeg<p>
 update1_mar6.Rmd<p>
-<b>Week 4:</b><p>
+<b>Week 5:</b><p>
 Figure1inblog.jpeg<p>
 Figure2inblog.png<p>
 Figure3inblog.png<p>
