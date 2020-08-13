@@ -12,3 +12,4 @@ Figure1inblog.jpeg<p>
 Figure2inblog.png<p>
 Figure3inblog.png<p>
 Figure4inblog.png<p>
+Blog_post.pdf
