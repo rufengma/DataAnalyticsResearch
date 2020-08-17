@@ -14,3 +14,4 @@ Figure3inblog.png<p>
 Figure4inblog.png<p>
 Blog_post.pdf
 all.csv is the result for the silhouette score plot.png <p>
+  <b>Week 6:</b><p>
